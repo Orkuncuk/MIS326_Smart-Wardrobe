@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Wardrobe & Personal Stylist — Team ID 13</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #141414;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 40px 20px 60px;
+}
+.page-title { text-align: center; margin-bottom: 22px; }
+.page-title h1 { font-size: 20px; font-weight: 500; color: #f0ede8; margin-bottom: 4px; }
+.page-title p { font-size: 12px; color: #555; }
+.nav-hint { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; }
+.nav-btn { background: #1e1e1e; border: 0.5px solid #333; border-radius: 8px; padding: 5px 12px; font-size: 12px; color: #888; cursor: pointer; font-family: inherit; }
+.nav-btn:hover { color: #c9a96e; }
+.phone { position: relative; width: 375px; height: 812px; background: #0d0d0d; border-radius: 44px; border: 1.5px solid #383838; overflow: hidden; }
+.notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 120px; height: 28px; background: #0d0d0d; border-radius: 0 0 18px 18px; z-index: 50; pointer-events: none; }
+.screen { position: absolute; inset: 0; display: none; flex-direction: column; overflow-y: auto; }
+.screen.active { display: flex; }
+.btn-gold { background: #c9a96e; border: none; border-radius: 12px; padding: 13px; font-size: 14px; font-weight: 500; color: #0d0d0d; cursor: pointer; width: 100%; font-family: inherit; }
+.btn-gold:hover { opacity: 0.88; }
+.btn-dark { background: #181818; border: 0.5px solid #353535; border-radius: 10px; padding: 7px 12px; font-size: 12px; color: #b0b0b0; cursor: pointer; font-family: inherit; }
+.btn-outline { background: #181818; border: 0.5px solid #353535; border-radius: 12px; padding: 12px; font-size: 13px; color: #b0b0b0; cursor: pointer; flex: 1; font-family: inherit; }
+.badge { font-size: 10px; padding: 2px 7px; border-radius: 6px; }
+.badge-clean { background: #0f1f0f; color: #5a9a5a; }
+.badge-dirty { background: #1f0f0f; color: #9a5a5a; }
+.divider { height: 0.5px; background: #252525; margin: 6px 0; }
+.garment-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.garment-card { background: #181818; border: 0.5px solid #282828; border-radius: 12px; overflow: hidden; cursor: pointer; }
+.garment-card:hover { border-color: #444; }
+.garment-thumb { height: 88px; display: flex; align-items: center; justify-content: center; }
+.garment-thumb span { font-size: 9px; font-weight: 500; letter-spacing: 0.05em; text-align: center; padding: 4px; white-space: pre-line; }
+.garment-foot { padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; }
+.garment-name { font-size: 12px; color: #c8c4be; }
+.outfit-item { background: #181818; border: 1.5px solid #2a7a4a; border-radius: 12px; overflow: hidden; display: flex; align-items: stretch; cursor: pointer; transition: opacity 0.2s, border-color 0.2s; }
+.outfit-item.skipped { opacity: 0.32; border-color: #6a2a2a; }
+.outfit-thumb-sm { width: 68px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.outfit-thumb-sm span { font-size: 8px; font-weight: 500; letter-spacing: 0.04em; text-align: center; padding: 4px; white-space: pre-line; }
+.outfit-info { padding: 10px 12px; flex: 1; }
+.outfit-name { font-size: 14px; font-weight: 500; color: #f0ede8; margin-bottom: 3px; }
+.outfit-sub { font-size: 11px; color: #666; }
+.modal-overlay { position: absolute; inset: 0; z-index: 200; display: none; flex-direction: column; justify-content: flex-end; }
+.modal-overlay.open { display: flex; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.65); }
+.modal-sheet { position: relative; z-index: 1; background: #181818; border-radius: 20px 20px 0 0; padding: 20px 20px 36px; max-height: 82%; overflow-y: auto; }
+.modal-handle { width: 36px; height: 4px; background: #333; border-radius: 2px; margin: 0 auto 16px; }
+.status-toggle { display: flex; gap: 8px; margin: 8px 0 12px; }
+.toggle-btn { flex: 1; padding: 10px; border-radius: 10px; font-size: 13px; font-family: inherit; cursor: pointer; border: 0.5px solid #333; background: #111; color: #555; }
+.toggle-btn.active-clean { background: #0f1f0f; border-color: #2a5a2a; color: #5a9a5a; }
+.toggle-btn.active-dirty { background: #1f0f0f; border-color: #5a2a2a; color: #9a5a5a; }
+.edit-label { font-size: 11px; color: #555; letter-spacing: 0.06em; margin-top: 10px; display: block; }
+.edit-input { background: #111; border: 0.5px solid #333; border-radius: 8px; padding: 9px 12px; font-size: 13px; color: #c8c4be; width: 100%; font-family: inherit; margin-top: 4px; outline: none; }
+.edit-input:focus { border-color: #555; }
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>Smart Wardrobe &amp; Personal Stylist System</h1>
+  <p>D1 · Analysis &amp; Conceptualisation · Team ID 13 · Boğaziçi University · 2025</p>
+</div>
+<div class="nav-hint">
+  <button class="nav-btn" onclick="go('s1')">01 · Login</button>
+  <button class="nav-btn" onclick="go('s2')">02 · Wardrobe</button>
+  <button class="nav-btn" onclick="go('s3');resetAdd()">03 · Add Item</button>
+  <button class="nav-btn" onclick="go('s4');setupOutfit()">04 · Outfit</button>
+</div>
+
+<div style="display:flex;justify-content:center">
+<div class="phone">
+  <div class="notch"></div>
+
+  <!-- S1 LOGIN -->
+  <div id="s1" class="screen active" style="padding:72px 28px 44px">
+    <div style="width:44px;height:44px;background:#c9a96e;border-radius:12px;margin-bottom:20px"></div>
+    <p style="font-size:28px;font-weight:500;color:#f0ede8;margin-bottom:4px">Wardrobe AI</p>
+    <p style="font-size:13px;color:#555;margin-bottom:44px">Your AI-powered personal stylist</p>
+    <p style="font-size:11px;color:#555;letter-spacing:0.08em;margin-bottom:6px">EMAIL</p>
+    <div style="background:#181818;border:0.5px solid #303030;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:14px;color:#b0b0b0">ayd@example.com</div>
+    <p style="font-size:11px;color:#555;letter-spacing:0.08em;margin-bottom:6px">PASSWORD</p>
+    <div style="background:#181818;border:0.5px solid #303030;border-radius:10px;padding:12px 14px;margin-bottom:28px;font-size:14px;color:#b0b0b0">••••••••</div>
+    <button class="btn-gold" onclick="go('s2')" style="margin-bottom:16px">Sign In</button>
+    <p style="font-size:13px;color:#555;text-align:center;margin-top:auto">No account? <span style="color:#c9a96e;cursor:pointer">Register</span></p>
+  </div>
+
+  <!-- S2 WARDROBE -->
+  <div id="s2" class="screen">
+    <div style="padding:52px 20px 14px;background:#0d0d0d;flex-shrink:0">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <p style="font-size:12px;color:#555">Good morning,</p>
+          <p style="font-size:22px;font-weight:500;color:#f0ede8">Ayd</p>
+        </div>
+        <div style="width:38px;height:38px;background:#c9a96e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:#0d0d0d">A</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 24px">
+      <div style="background:#181818;border:0.5px solid #282828;border-radius:16px;padding:14px 16px;margin-bottom:16px">
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <div style="flex:1;background:#111;border-radius:10px;padding:10px">
+            <p style="font-size:10px;color:#555;letter-spacing:0.07em;margin-bottom:2px">WEATHER</p>
+            <p style="font-size:15px;font-weight:500;color:#f0ede8">18°C Cloudy</p>
+            <p style="font-size:10px;color:#555">Istanbul</p>
+          </div>
+          <div style="flex:1;background:#111;border-radius:10px;padding:10px">
+            <p style="font-size:10px;color:#555;letter-spacing:0.07em;margin-bottom:2px">TODAY</p>
+            <p style="font-size:14px;font-weight:500;color:#f0ede8">Team Meeting</p>
+            <p style="font-size:10px;color:#555">14:00 — Office</p>
+          </div>
+        </div>
+        <button class="btn-gold" onclick="go('s4');setupOutfit()">Get Outfit Suggestion</button>
+      </div>
+      <div style="background:#181818;border:0.5px solid #282828;border-radius:14px;padding:14px 16px;margin-bottom:16px">
+        <p style="font-size:12px;font-weight:500;color:#f0ede8;margin-bottom:3px">Special Request</p>
+        <p style="font-size:11px;color:#555;margin-bottom:10px">Describe what you're looking for today</p>
+        <textarea id="special-req" placeholder="e.g. I want something relaxed, I have a job interview, I'm going to a dinner date…" style="width:100%;background:#111;border:0.5px solid #333;border-radius:10px;padding:10px 12px;font-size:13px;color:#c8c4be;font-family:inherit;resize:none;height:72px;outline:none;line-height:1.5"></textarea>
+        <button onclick="submitSpecialRequest()" style="width:100%;margin-top:10px;background:#1e1e1e;border:0.5px solid #c9a96e;border-radius:10px;padding:10px;font-size:13px;color:#c9a96e;cursor:pointer;font-family:inherit">Get Custom Suggestion</button>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <p style="font-size:16px;font-weight:500;color:#f0ede8">My Wardrobe</p>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="total-count" style="font-size:12px;color:#555">6 items</span>
+          <button class="btn-dark" onclick="go('s3');resetAdd()" style="border-color:#c9a96e;color:#c9a96e">+ Add</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <span id="clean-count" style="background:#0f1f0f;border:0.5px solid #1f3f1f;border-radius:8px;padding:5px 12px;font-size:11px;color:#5a9a5a">4 Clean</span>
+        <span id="dirty-count" style="background:#1f0f0f;border:0.5px solid #3f1f1f;border-radius:8px;padding:5px 12px;font-size:11px;color:#9a5a5a">2 Dirty</span>
+      </div>
+      <p style="font-size:11px;color:#444;margin-bottom:10px">Tap a garment to view details, edit, or update laundry status</p>
+      <div class="garment-grid" id="wardrobe-grid"></div>
+    </div>
+  </div>
+
+  <!-- S3 ADD ITEM -->
+  <div id="s3" class="screen" style="padding:52px 20px 32px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <button class="btn-dark" onclick="go('s2');resetAdd()">← Back</button>
+      <p style="font-size:18px;font-weight:500;color:#f0ede8">Add Garment</p>
+    </div>
+    <div id="upload-area" style="background:#181818;border:0.5px dashed #404040;border-radius:16px;padding:44px 20px;text-align:center;cursor:pointer;margin-bottom:16px" onclick="showAnalysis()">
+      <div style="width:52px;height:52px;background:#222;border-radius:14px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center">
+        <svg width="24" height="20" viewBox="0 0 24 20" fill="none">
+          <rect x="1" y="4" width="22" height="15" rx="2" stroke="#777" stroke-width="1.5"/>
+          <circle cx="12" cy="12" r="4" stroke="#777" stroke-width="1.5"/>
+          <path d="M8 4 L10 1 L14 1 L16 4" stroke="#777" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <p style="font-size:15px;color:#c0bcb6;font-weight:500;margin-bottom:6px">Tap to take or upload photo</p>
+      <p style="font-size:12px;color:#555">AI identifies your garment automatically</p>
+    </div>
+    <div id="analyzing" style="display:none;background:#181818;border:0.5px solid #282828;border-radius:14px;padding:18px;text-align:center;margin-bottom:16px">
+      <p style="font-size:13px;color:#888">Analyzing image with AI…</p>
+      <div style="height:4px;background:#252525;border-radius:2px;margin:10px 0 0;overflow:hidden">
+        <div id="bar" style="height:100%;width:0;background:#c9a96e;border-radius:2px;transition:width 1.2s ease"></div>
+      </div>
+    </div>
+    <div id="analysis-result" style="display:none;flex-direction:column;gap:10px">
+      <div style="height:100px;background:#e0dcd4;border-radius:12px;display:flex;align-items:center;justify-content:center">
+        <span style="font-size:11px;color:#555;font-weight:500;letter-spacing:0.06em">WHITE FORMAL SHIRT</span>
+      </div>
+      <div style="background:#181818;border:0.5px solid #1f2f1f;border-radius:14px;padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <p style="font-size:14px;font-weight:500;color:#f0ede8">AI Analysis</p>
+          <span class="badge badge-clean">Identified</span>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="font-size:13px;color:#555">Type</span><span id="ai-type" style="font-size:13px;color:#c8c4be">Formal Shirt</span></div>
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="font-size:13px;color:#555">Color</span><span id="ai-color" style="font-size:13px;color:#c8c4be">White</span></div>
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="font-size:13px;color:#555">Style</span><span id="ai-style" style="font-size:13px;color:#c8c4be">Business / Formal</span></div>
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="font-size:13px;color:#555">Fabric</span><span id="ai-fabric" style="font-size:13px;color:#c8c4be">Cotton 95%</span></div>
+          <div class="divider"></div>
+          <div style="display:flex;justify-content:space-between;padding:7px 0"><span style="font-size:13px;color:#555">Wash every</span><span style="font-size:13px;color:#c9a96e">2 wears</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline" onclick="openEditModal()">Edit Details</button>
+        <button class="btn-gold" onclick="saveNewItem()" style="border-radius:10px;padding:12px">Save to Wardrobe</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4 OUTFIT SUGGESTION -->
+  <div id="s4" class="screen" style="padding:52px 20px 32px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <button class="btn-dark" onclick="go('s2');resetOutfit()">← Back</button>
+      <p style="font-size:18px;font-weight:500;color:#f0ede8">Today's Outfit</p>
+      <span id="outfit-counter" style="font-size:11px;color:#555;margin-left:auto">1 / 2</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <div style="background:#12162a;border:0.5px solid #222a44;border-radius:8px;padding:6px 12px">
+        <p style="font-size:10px;color:#555;letter-spacing:0.05em;margin:0">WEATHER</p>
+        <p style="font-size:12px;font-weight:500;color:#8090c0;margin:0">18°C Cloudy</p>
+      </div>
+      <div style="background:#0f1a0f;border:0.5px solid #1f361f;border-radius:8px;padding:6px 12px">
+        <p style="font-size:10px;color:#555;letter-spacing:0.05em;margin:0">EVENT</p>
+        <p style="font-size:12px;font-weight:500;color:#70b070;margin:0">Team Meeting</p>
+      </div>
+      <div style="background:#1a1408;border:0.5px solid #38280f;border-radius:8px;padding:6px 12px">
+        <p style="font-size:10px;color:#555;letter-spacing:0.05em;margin:0">STYLE</p>
+        <p id="outfit-style-val" style="font-size:12px;font-weight:500;color:#c9a96e;margin:0">Business</p>
+      </div>
+    </div>
+    <div style="background:#181818;border:0.5px solid #282828;border-radius:10px;padding:9px 12px;margin-bottom:12px;display:flex;gap:14px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:6px;height:6px;background:#5a9a5a;border-radius:50%"></div><span style="font-size:11px;color:#555">Hygiene filter</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:6px;height:6px;background:#5a9a5a;border-radius:50%"></div><span style="font-size:11px;color:#555">Social memory</span></div>
+      <div style="display:flex;align-items:center;gap:5px"><div style="width:6px;height:6px;background:#5a9a5a;border-radius:50%"></div><span style="font-size:11px;color:#555">Recursive learning</span></div>
+    </div>
+    <div id="special-req-banner" style="display:none;background:#1a1408;border:0.5px solid #3a2a10;border-radius:10px;padding:10px 14px;margin-bottom:10px">
+      <p style="font-size:10px;color:#666;letter-spacing:0.06em;margin-bottom:3px">YOUR REQUEST</p>
+      <p id="special-req-text" style="font-size:13px;color:#c9a96e;font-style:italic;margin:0;line-height:1.5"></p>
+    </div>
+    <div style="background:#0f1f0f;border:0.5px solid #1f3a1f;border-radius:8px;padding:8px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      <div style="width:8px;height:8px;background:#3a9a5a;border-radius:50%;flex-shrink:0"></div>
+      <p style="font-size:11px;color:#5a9a5a;margin:0">Green border = wearing today &nbsp;·&nbsp; Tap to skip an item</p>
+    </div>
+    <div id="outfit-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px"></div>
+    <div id="outfit-actions" style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn-gold" onclick="confirmOutfit()">Wear This Today</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-outline" onclick="nextOutfit()">Suggest Another</button>
+        <button class="btn-outline" onclick="go('s2')">Choose Manually</button>
+      </div>
+    </div>
+    <div id="outfit-confirmed" style="display:none;flex-direction:column;align-items:center;gap:12px;padding-top:4px">
+      <div style="width:52px;height:52px;background:#0f1f0f;border-radius:50%;display:flex;align-items:center;justify-content:center">
+        <svg width="22" height="16" viewBox="0 0 22 16">
+          <polyline points="2,8 8,14 20,2" stroke="#5a9a5a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <p style="font-size:15px;font-weight:500;color:#f0ede8;text-align:center">Outfit confirmed!</p>
+      <div id="confirmed-items" style="background:#181818;border:0.5px solid #282828;border-radius:12px;padding:12px 16px;width:100%"></div>
+      <p style="font-size:12px;color:#666;text-align:center;line-height:1.7">Items moved to laundry tracking.<br>How was this suggestion?</p>
+      <div style="display:flex;gap:10px">
+        <button style="background:#0f1f0f;border:0.5px solid #1f3f1f;border-radius:10px;padding:10px 20px;font-size:13px;color:#5a9a5a;cursor:pointer;font-family:inherit" onclick="go('s2');resetOutfit()">Love it</button>
+        <button style="background:#1f0f0f;border:0.5px solid #3f1f1f;border-radius:10px;padding:10px 20px;font-size:13px;color:#9a5a5a;cursor:pointer;font-family:inherit" onclick="go('s2');resetOutfit()">Not great</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- GARMENT DETAIL MODAL -->
+  <div id="garment-modal" class="modal-overlay">
+    <div class="modal-backdrop" onclick="closeGarmentModal()"></div>
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+        <div style="flex:1;margin-right:12px">
+          <p id="modal-name" style="font-size:16px;font-weight:500;color:#f0ede8;margin-bottom:3px"></p>
+          <p id="modal-subtitle" style="font-size:12px;color:#666"></p>
+        </div>
+        <div id="modal-thumb" style="width:52px;height:52px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center">
+          <span id="modal-thumb-lbl" style="font-size:7px;font-weight:500;text-align:center;padding:3px;letter-spacing:0.04em;white-space:pre-line"></span>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#666">Laundry status</p>
+      <div class="status-toggle">
+        <button id="btn-clean" class="toggle-btn" onclick="setStatus('clean')">Clean</button>
+        <button id="btn-dirty" class="toggle-btn" onclick="setStatus('dirty')">Dirty</button>
+      </div>
+      <div class="divider"></div>
+      <label class="edit-label">Garment name</label>
+      <input id="edit-name" class="edit-input" type="text">
+      <label class="edit-label">Type</label>
+      <input id="edit-type" class="edit-input" type="text">
+      <label class="edit-label">Color</label>
+      <input id="edit-color" class="edit-input" type="text">
+      <label class="edit-label">Style</label>
+      <input id="edit-style" class="edit-input" type="text">
+      <label class="edit-label">Fabric</label>
+      <input id="edit-fabric" class="edit-input" type="text">
+      <label class="edit-label">Wash frequency</label>
+      <input id="edit-freq" class="edit-input" type="text">
+      <button class="btn-gold" onclick="saveGarment()" style="margin-top:16px">Save Changes</button>
+    </div>
+  </div>
+
+  <!-- EDIT DETAILS MODAL -->
+  <div id="edit-modal" class="modal-overlay">
+    <div class="modal-backdrop" onclick="closeEditModal()"></div>
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <p style="font-size:16px;font-weight:500;color:#f0ede8;margin-bottom:14px">Edit Garment Details</p>
+      <label class="edit-label">Type</label>
+      <input id="new-type" class="edit-input" value="Formal Shirt">
+      <label class="edit-label">Color</label>
+      <input id="new-color" class="edit-input" value="White">
+      <label class="edit-label">Style</label>
+      <input id="new-style" class="edit-input" value="Business / Formal">
+      <label class="edit-label">Fabric</label>
+      <input id="new-fabric" class="edit-input" value="Cotton 95%">
+      <label class="edit-label">Wash every (number of wears)</label>
+      <input id="new-freq" class="edit-input" type="number" value="2" min="1">
+      <button class="btn-gold" onclick="saveEditDetails()" style="margin-top:16px">Apply Changes</button>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div style="text-align:center;margin-top:24px;font-size:11px;color:#333;line-height:1.9">
+  Smart Wardrobe &amp; Personal Stylist System · D1 Analysis &amp; Conceptualisation<br>
+  Team ID 13 · Boğaziçi University · 2025
+</div>
+
+<script>
+var S = {
+  garments: {
+    shirt:   {name:'White Formal Shirt',type:'Formal Shirt',color:'White',   style:'Business / Formal',fabric:'Cotton 95%',   freq:'Every 2 wears',status:'clean',bg:'#e0dcd4',tc:'#555',   lbl:'WHITE\nSHIRT'},
+    blazer:  {name:'Navy Blazer',       type:'Blazer',      color:'Navy',    style:'Smart Formal',     fabric:'Wool 80%',     freq:'Every 5 wears',status:'clean',bg:'#253555',tc:'#9aabcc',lbl:'NAVY\nBLAZER'},
+    jeans:   {name:'Black Jeans',       type:'Denim Jeans', color:'Black',   style:'Casual',           fabric:'Denim 100%',   freq:'Every 3 wears',status:'clean',bg:'#181820',tc:'#666',   lbl:'BLACK\nJEANS'},
+    sweater: {name:'Grey Sweater',      type:'Knitwear',    color:'Grey',    style:'Casual / Smart',   fabric:'Merino Wool',  freq:'Every 4 wears',status:'dirty',bg:'#353028',tc:'#888',   lbl:'GREY\nSWEATER'},
+    chinos:  {name:'Beige Chinos',      type:'Chinos',      color:'Beige',   style:'Smart Casual',     fabric:'Cotton 98%',   freq:'Every 3 wears',status:'clean',bg:'#cebf9a',tc:'#6a5a3a',lbl:'BEIGE\nCHINOS'},
+    tee:     {name:'Burgundy Tee',      type:'T-Shirt',     color:'Burgundy',style:'Casual',           fabric:'Cotton 100%',  freq:'Every 2 wears',status:'dirty',bg:'#452030',tc:'#c08090',lbl:'BURGUNDY\nTEE'}
+  },
+  outfits: [
+    {style:'Business',items:['shirt','blazer','chinos'],roles:['TOP','OUTER','BOTTOM']},
+    {style:'Casual',  items:['shirt','jeans'],          roles:['TOP','BOTTOM']}
+  ],
+  outfitIdx: 0,
+  selected: {},
+  curKey: null
+};
+
+function go(id){
+  document.querySelectorAll('.screen').forEach(function(e){e.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+}
+
+function renderWardrobe(){
+  var clean=0,dirty=0,html='';
+  Object.keys(S.garments).forEach(function(k){
+    var g=S.garments[k];
+    if(g.status==='clean') clean++; else dirty++;
+    html+='<div class="garment-card" onclick="openGarment(\''+k+'\')">'+
+      '<div class="garment-thumb" style="background:'+g.bg+'"><span style="color:'+g.tc+'">'+g.lbl+'</span></div>'+
+      '<div class="garment-foot"><span class="garment-name">'+g.type+'</span>'+
+      '<span id="bdg-'+k+'" class="badge badge-'+g.status+'">'+( g.status==='clean'?'Clean':'Dirty')+'</span></div></div>';
+  });
+  document.getElementById('wardrobe-grid').innerHTML=html;
+  document.getElementById('clean-count').textContent=clean+' Clean';
+  document.getElementById('dirty-count').textContent=dirty+' Dirty';
+  document.getElementById('total-count').textContent=Object.keys(S.garments).length+' items';
+}
+
+function openGarment(k){
+  S.curKey=k; var g=S.garments[k];
+  document.getElementById('modal-name').textContent=g.name;
+  document.getElementById('modal-subtitle').textContent=g.type+' · '+g.color;
+  document.getElementById('modal-thumb').style.background=g.bg;
+  document.getElementById('modal-thumb-lbl').textContent=g.lbl;
+  document.getElementById('modal-thumb-lbl').style.color=g.tc;
+  document.getElementById('edit-name').value=g.name;
+  document.getElementById('edit-type').value=g.type;
+  document.getElementById('edit-color').value=g.color;
+  document.getElementById('edit-style').value=g.style;
+  document.getElementById('edit-fabric').value=g.fabric;
+  document.getElementById('edit-freq').value=g.freq;
+  refreshStatusUI(g.status);
+  document.getElementById('garment-modal').classList.add('open');
+}
+
+function refreshStatusUI(s){
+  document.getElementById('btn-clean').className='toggle-btn'+(s==='clean'?' active-clean':'');
+  document.getElementById('btn-dirty').className='toggle-btn'+(s==='dirty'?' active-dirty':'');
+}
+
+function setStatus(s){
+  if(!S.curKey) return;
+  S.garments[S.curKey].status=s;
+  refreshStatusUI(s);
+}
+
+function saveGarment(){
+  var k=S.curKey; if(!k) return; var g=S.garments[k];
+  g.name  =document.getElementById('edit-name').value  ||g.name;
+  g.type  =document.getElementById('edit-type').value  ||g.type;
+  g.color =document.getElementById('edit-color').value ||g.color;
+  g.style =document.getElementById('edit-style').value ||g.style;
+  g.fabric=document.getElementById('edit-fabric').value||g.fabric;
+  g.freq  =document.getElementById('edit-freq').value  ||g.freq;
+  closeGarmentModal(); renderWardrobe();
+}
+
+function closeGarmentModal(){document.getElementById('garment-modal').classList.remove('open'); S.curKey=null;}
+
+function setupOutfit(){
+  var o=S.outfits[S.outfitIdx]; S.selected={};
+  o.items.forEach(function(k){S.selected[k]=true;});
+  document.getElementById('outfit-style-val').textContent=o.style;
+  document.getElementById('outfit-counter').textContent=(S.outfitIdx+1)+' / '+S.outfits.length;
+  renderOutfitList();
+  document.getElementById('outfit-actions').style.display='flex';
+  document.getElementById('outfit-confirmed').style.display='none';
+}
+
+function renderOutfitList(){
+  var o=S.outfits[S.outfitIdx], html='';
+  o.items.forEach(function(k,i){
+    var g=S.garments[k], wearing=S.selected[k];
+    html+='<div id="oi-'+k+'" class="outfit-item'+(wearing?'':' skipped')+'" onclick="toggleItem(\''+k+'\')">'+
+      '<div class="outfit-thumb-sm" style="background:'+g.bg+'"><span style="color:'+g.tc+'">'+g.lbl+'</span></div>'+
+      '<div class="outfit-info"><p class="outfit-name">'+g.name+'</p><p class="outfit-sub">'+g.fabric+' · '+g.style+'</p></div>'+
+      '<div style="padding:10px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0">'+
+      '<span style="font-size:10px;color:#c9a96e;letter-spacing:0.04em">'+o.roles[i]+'</span>'+
+      '<span id="oi-lbl-'+k+'" style="font-size:10px;color:'+(wearing?'#5a9a5a':'#9a5a5a')+'">'+(wearing?'Wearing':'Skipped')+'</span>'+
+      '</div></div>';
+  });
+  document.getElementById('outfit-list').innerHTML=html;
+}
+
+function toggleItem(k){
+  S.selected[k]=!S.selected[k];
+  var el=document.getElementById('oi-'+k), lbl=document.getElementById('oi-lbl-'+k), w=S.selected[k];
+  el.classList.toggle('skipped',!w);
+  lbl.style.color=w?'#5a9a5a':'#9a5a5a';
+  lbl.textContent=w?'Wearing':'Skipped';
+}
+
+function confirmOutfit(){
+  var o=S.outfits[S.outfitIdx];
+  var wearing=o.items.filter(function(k){return S.selected[k];});
+  if(wearing.length===0) wearing=o.items.slice();
+  var html='<p style="font-size:10px;color:#555;letter-spacing:0.07em;margin-bottom:10px">TODAY YOU\'RE WEARING</p>';
+  wearing.forEach(function(k,i){
+    var g=S.garments[k], role=o.roles[o.items.indexOf(k)];
+    html+='<div style="display:flex;align-items:center;gap:10px;padding:7px 0'+(i<wearing.length-1?';border-bottom:0.5px solid #252525':'')+'">' +
+      '<div style="width:34px;height:34px;border-radius:7px;background:'+g.bg+';flex-shrink:0"></div>'+
+      '<div><p style="font-size:13px;color:#f0ede8;margin:0">'+g.name+'</p>'+
+      '<p style="font-size:11px;color:#666;margin:0">'+role+' · '+g.type+'</p></div></div>';
+    S.garments[k].status='dirty';
+  });
+  document.getElementById('confirmed-items').innerHTML=html;
+  document.getElementById('outfit-actions').style.display='none';
+  document.getElementById('outfit-confirmed').style.display='flex';
+}
+
+function nextOutfit(){
+  S.outfitIdx=(S.outfitIdx+1)%S.outfits.length;
+  setupOutfit();
+}
+
+function resetOutfit(){
+  S.outfitIdx=0;
+  document.getElementById('outfit-actions').style.display='flex';
+  document.getElementById('outfit-confirmed').style.display='none';
+  document.getElementById('special-req-banner').style.display='none';
+}
+
+function showAnalysis(){
+  document.getElementById('upload-area').style.display='none';
+  document.getElementById('analyzing').style.display='block';
+  setTimeout(function(){document.getElementById('bar').style.width='100%';},50);
+  setTimeout(function(){
+    document.getElementById('analyzing').style.display='none';
+    document.getElementById('analysis-result').style.display='flex';
+  },1400);
+}
+
+function resetAdd(){
+  document.getElementById('upload-area').style.display='block';
+  document.getElementById('analyzing').style.display='none';
+  document.getElementById('analysis-result').style.display='none';
+  var b=document.getElementById('bar'); b.style.transition='none'; b.style.width='0';
+  setTimeout(function(){b.style.transition='width 1.2s ease';},50);
+}
+
+function openEditModal(){document.getElementById('edit-modal').classList.add('open');}
+function closeEditModal(){document.getElementById('edit-modal').classList.remove('open');}
+
+function saveEditDetails(){
+  document.getElementById('ai-type').textContent  =document.getElementById('new-type').value;
+  document.getElementById('ai-color').textContent =document.getElementById('new-color').value;
+  document.getElementById('ai-style').textContent =document.getElementById('new-style').value;
+  document.getElementById('ai-fabric').textContent=document.getElementById('new-fabric').value;
+  closeEditModal();
+}
+
+function saveNewItem(){
+  var type =document.getElementById('ai-type').textContent;
+  var color=document.getElementById('ai-color').textContent;
+  var k='new'+Date.now();
+  S.garments[k]={
+    name:color+' '+type, type:type, color:color,
+    style:document.getElementById('ai-style').textContent,
+    fabric:document.getElementById('ai-fabric').textContent,
+    freq:'Every 2 wears', status:'clean',
+    bg:'#e0dcd4', tc:'#555', lbl:color.substring(0,5).toUpperCase()+'\n'+type.split(' ')[0].toUpperCase()
+  };
+  resetAdd(); go('s2'); renderWardrobe();
+}
+
+function submitSpecialRequest(){
+  var req=document.getElementById('special-req').value.trim();
+  if(!req) return;
+  var lower=req.toLowerCase();
+  document.getElementById('special-req-banner').style.display='block';
+  document.getElementById('special-req-text').textContent='"'+req+'"';
+  var formalKw=['formal','interview','office','meeting','presentation','business','suit'];
+  var casualKw=['casual','relax','chill','weekend','date','dinner','party','fun','comfortable','rahat'];
+  var isFormal=formalKw.some(function(w){return lower.indexOf(w)!==-1;});
+  var isCasual=casualKw.some(function(w){return lower.indexOf(w)!==-1;});
+  if(isFormal&&!isCasual) S.outfitIdx=0;
+  else if(isCasual&&!isFormal) S.outfitIdx=1;
+  else S.outfitIdx=0;
+  go('s4'); setupOutfit();
+}
+
+renderWardrobe();
+</script>
+</body>
+</html>
